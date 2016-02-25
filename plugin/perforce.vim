@@ -18,6 +18,7 @@ if exists("loaded_perforce")
    finish
 endif
 let loaded_perforce=1
+let s:disableEditFileChangelistDialog=1
 
 " define the mappings that provide the user interface to this plug-in
 augroup perforce
@@ -97,6 +98,8 @@ endfunction
 if !exists( "p4ruler" )
     let p4SetRuler = 1
 endif
+
+
 
 if( strlen( &rulerformat ) == 0 ) && ( p4SetRuler == 1 )
   set rulerformat=%60(%=%{P4RulerStatus()}\ %4l,%-3c\ %3p%%%)
@@ -332,13 +335,18 @@ function s:P4OpenFileForEdit()
     else
         let action = "edit"
     endif
+
     let listnum = ""
-    let listnum = s:P4GetChangelist( "Current changelists:\n" . s:P4GetChangelists(0) . "\nEnter changelist number: ", b:changelist )
-    if listnum == ""
-        echomsg "No changelist specified. Edit cancelled."
-        return
+    if s:disableEditFileChangelistDialog == 1
+      call s:P4ShellCommandCurrentBuffer(action . " " . expand( "%:p" ))
+    else
+      let listnum = s:P4GetChangelist( "Current changelists:\n" . s:P4GetChangelists(0) . "\nEnter changelist number: ", b:changelist )
+      if listnum == ""
+          echomsg "No changelist specified. Edit cancelled."
+          return
+      endif
+      call s:P4ShellCommandCurrentBuffer( action . " -c " . listnum )
     endif
-    call s:P4ShellCommandCurrentBuffer( action . " -c " . listnum )
     if v:errmsg != ""
         echoerr "Unable to open file for " action . ". " . v:errmsg
         return
