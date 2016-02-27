@@ -126,7 +126,7 @@ endfunction
 " A wrapper around a p4 command line for the current buffer
 "----------------------------------------------------------------------------
 function s:P4ShellCommandCurrentBuffer( sCmd )
-                let filename = expand( "%:p" )
+                let filename = s:P4GetQuotedFilename()
                 return s:P4ShellCommand( a:sCmd . " " . filename )
 endfunction
 
@@ -318,11 +318,23 @@ function s:P4OpenFileForEditWithPrompt()
     endif
 endfunction
 
+
+"----------------------------------------------------------------------------
+" Returns the local filepath for the current buffer as a quoted string.
+" eg. '"C:\my folder\myfile.txt"'
+"----------------------------------------------------------------------------
+function s:P4GetQuotedFilename()
+    let quoted_filename = " \"" . expand( "%:p" ) . "\""
+    return quoted_filename
+endfunction
+
 "----------------------------------------------------------------------------
 " Open a file for editing, with more checking than just wrapping the command
 "----------------------------------------------------------------------------
 function s:P4OpenFileForEdit()
-    if filewritable(expand( "%:p" ) ) == 0
+    let quoted_filename = s:P4GetQuotedFilename()
+
+    if filewritable(quoted_filename) == 0
         if s:P4IsCurrent() != 0
             let sync = confirm("You do not have the head revision.  p4 sync the file before opening?", "&Yes\n&No", 1, "Question")
             if sync == 1
@@ -330,6 +342,7 @@ function s:P4OpenFileForEdit()
             endif
         endif
     endif
+
     if (b:headrev == "" || b:action == "add")
         let action = "add"
     else
@@ -338,7 +351,7 @@ function s:P4OpenFileForEdit()
 
     let listnum = ""
     if s:disableEditFileChangelistDialog == 1
-      call s:P4ShellCommandCurrentBuffer(action . " " . expand( "%:p" ))
+      call s:P4ShellCommandCurrentBuffer(action . "" . quoted_filename)
     else
       let listnum = s:P4GetChangelist( "Current changelists:\n" . s:P4GetChangelists(0) . "\nEnter changelist number: ", b:changelist )
       if listnum == ""
